@@ -3,28 +3,28 @@
     "contentVersion": "1.0.0.0",
     "parameters": {
         "existingSubnetName": {
-            "value": "apptier"
+            "value": ""
         },
         "existingVirtualNetworkName": {
-            "value": "asrdestinationvnet"
+            "value": ""
         },
         "existingVirtualNetworkResourceGroupName": {
-            "value": "asrautomationfailover"
+            "value": ""
         },
         "virtualMachineName": {
-            "value": "testvm02"
+            "value": ""
         },
         "adminUsername": {
-            "value": "jason"
+            "value": ""
         },
         "diagnosticsStorageAccountName": {
-            "value": "asrautomationdiag218"
+            "value": ""
         },
         "useExistingAvailabilitySet":{
-            "value": "yes"
+            "value": ""
         },
         "availabilitySetName": {
-            "value": "test-avs"
+            "value": ""
         }
     }
 }
