@@ -23,7 +23,7 @@ $avSetName = 'youravsetname'
 #e.g. Standard_DS3
 #Get all the vm sizes in a region using below script:
 #e.g. Get-AzureRmVMSize -Location westus
-$virtualMachineSize = 'Standard_DS1_v2'
+$virtualMachineSize = 'Standard_DS2_v2'
 
 #Set the context to the subscription Id where Managed Disk will be created
 Select-AzureRmSubscription -SubscriptionId $SubscriptionId

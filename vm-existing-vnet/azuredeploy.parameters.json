@@ -1,0 +1,30 @@
+{
+    "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "existingSubnetName": {
+            "value": "apptier"
+        },
+        "existingVirtualNetworkName": {
+            "value": "asrdestinationvnet"
+        },
+        "existingVirtualNetworkResourceGroupName": {
+            "value": "asrautomationfailover"
+        },
+        "virtualMachineName": {
+            "value": "testvm02"
+        },
+        "adminUsername": {
+            "value": "jason"
+        },
+        "diagnosticsStorageAccountName": {
+            "value": "asrautomationdiag218"
+        },
+        "useExistingAvailabilitySet":{
+            "value": "yes"
+        },
+        "availabilitySetName": {
+            "value": "test-avs"
+        }
+    }
+}
