@@ -1,0 +1,30 @@
+{
+    "displayName": "Audit VM Diagnostics are Enabled",
+    "mode": "Indexed",
+    "description": "Audit if the diagnostics settings have been enabled on virtual machines.",
+    "parameters": {},
+    "policyRule": {
+        "if": {
+            "field": "type",
+            "equals": "Microsoft.Compute/virtualMachines"
+        },
+        "then": {
+            "effect": "auditIfNotExists",
+            "details": {
+                "type": "Microsoft.Compute/virtualMachines/extensions",
+                "existenceCondition": {
+                    "allOf": [
+                        {
+                            "field": "Microsoft.Compute/virtualMachines/extensions/type",
+                            "equals": "IaaSDiagnostics"
+                        },
+                        {
+                            "field": "Microsoft.Compute/virtualMachines/extensions/publisher",
+                            "equals": "Microsoft.Azure.Diagnostics"
+                        }
+                    ]
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,33 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "existingSubnetName": {
+            "value": "web"
+        },
+        "existingVirtualNetworkName": {
+            "value": "vnet"
+        },
+        "existingVirtualNetworkResourceGroupName": {
+            "value": "AutomationDemo"
+        },
+        "virtualMachineName": {
+            "value": "web1"
+        },
+        "adminUsername": {
+            "value": "demouser"
+        },
+        "adminPassword": {
+            "value": "########"
+        },
+        "diagnosticsStorageAccountName": {
+            "value": "diagdemosa"
+        },
+        "useExistingAvailabilitySet":{
+            "value": "no"
+        },
+        "availabilitySetName": {
+            "value": "web-avset"
+        }
+    }
+}

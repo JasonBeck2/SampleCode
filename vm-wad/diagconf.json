@@ -1,0 +1,51 @@
+{
+    "PublicConfig": {
+        "WadCfg": {
+            "DiagnosticMonitorConfiguration": {
+                "overallQuotaInMB": 5120,
+                "Metrics": {
+                    "MetricAggregation": [
+                        {
+                            "scheduledTransferPeriod": "PT1H"
+                        },
+                        {
+                            "scheduledTransferPeriod": "PT1M"
+                        }
+                    ]
+                },
+                "DiagnosticInfrastructureLogs": {
+                    "scheduledTransferLogLevelFilter": "Error",
+                    "scheduledTransferPeriod": "PT1M"
+                },
+                "PerformanceCounters": {
+                    "scheduledTransferPeriod": "PT1M",
+                    "PerformanceCounterConfiguration": []
+                },
+                "WindowsEventLog": {
+                    "scheduledTransferPeriod": "PT1M",
+                    "DataSource": [
+                        {
+                            "name": "Application!*[System[(Level=1 or Level=2 or Level=3)]]"
+                        },
+                        {
+                            "name": "System!*[System[(Level=1 or Level=2 or Level=3)]]"
+                        },
+                        {
+                            "name": "Security!*[System[(band(Keywords,4503599627370496))]]"
+                        }
+                    ]
+                },
+                "Directories": {
+                    "scheduledTransferPeriod": "PT1M"
+                }
+            }
+        },
+        "StorageAccount": "jbcs",
+        "StorageType": "TableAndBlob"
+    },
+    "PrivateConfig": {
+        "storageAccountName": "jbcs",
+        "storageAccountKey": "",
+        "storageAccountEndPoint": "https://jbcs.blob.core.windows.net"
+    }
+}
