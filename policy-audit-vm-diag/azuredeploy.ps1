@@ -1,5 +1,5 @@
 $name = "AuditVMmDiagnostics"
-$displayName = "Audit VM Diagnostics are Enabled2"
+$displayName = "Audit VM Diagnostics are Enabled"
 $policy = ".\definition.json"
 
 # Create policy definition
