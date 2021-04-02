@@ -4,7 +4,7 @@ write-host 'AIB Customization: Download Language ISO, Feature on Demand (FOD) Di
 $appName = 'languagePacks'
 $drive = 'C:\'
 New-Item -Path $drive -Name $appName  -ItemType Directory -ErrorAction SilentlyContinue
-$LocalPath = $drive + '\' + $appName
+$LocalPath = $drive + $appName
 Set-Location $LocalPath
 $langIsoUrl = 'https://software-download.microsoft.com/download/pr/19041.1.191206-1406.vb_release_CLIENTLANGPACKDVD_OEM_MULTI.iso'
 $langIsoUrlIso = 'ClientLangPack.iso'
@@ -89,3 +89,10 @@ $LanguageList = Get-WinUserLanguageList
 $LanguageList.Add("ja-jp")
 Set-WinUserLanguageList $LanguageList -force
 write-host 'AIB Customization: Finished installing Japanese (Japan) language packs'
+
+# Unmount ISOs
+write-host 'AIB Customization: Unmounting ISOs'
+Dismount-DiskImage -ImagePath $langOutputPath
+Dismount-DiskImage -ImagePath $fodOutputPath
+#Dismount-DiskImage -ImagePath $inboxAppsOutputPath
+write-host 'AIB Customization: Finished unmounting ISOs'
