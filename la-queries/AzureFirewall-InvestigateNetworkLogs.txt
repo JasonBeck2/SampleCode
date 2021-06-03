@@ -1,0 +1,17 @@
+AzureDiagnostics
+| where Category == "AzureFirewallNetworkRule"
+| where OperationName <> "AzureFirewallThreatIntelLog"
+//| where Resource  == "" // filter by different firewalls
+| parse msg_s with Protocol " request from " SrcIP ":" SrcPortInt:int " to " DestIP ":" DestPortInt:int *
+| parse msg_s with * ". Action: " Action1a
+| parse msg_s with * "was " Action1b " to " NatDestination
+| parse msg_s with Protocol2 " request from " SrcIP2 " to " DestIP2 ". Action:" Action2
+| extend SrcPort = tostring(SrcPortInt),DestPort = tostring(DestPortInt)
+| extend Action = case(Action1a == "", case(Action1b == "",Action2,Action1b), Action1a),Protocol = case(Protocol == "", Protocol2, Protocol),SrcIP = case(SrcIP == "", SrcIP2, SrcIP),DestIP = case(DestIP == "", DestIP2, DestIP),SrcPort = case(SrcPort == "", "N/A", SrcPort),DestPort = case(DestPort == "", "N/A", DestPort),NatDestination = case(NatDestination == "", "N/A", NatDestination)
+//| where Action == "Deny" // DNAT'ed, Allow, Deny, etc.
+// | where SrcIP contains "192.168.1.4"
+// | where SrcPort == ""
+// | where DestIP contains ".4"
+// | where DestPort == "80"
+| project TimeGenerated, Action, Resource, SrcIP, SrcPort, DestIP, DestPort, Protocol, NatDestination, msg_s
+| sort by TimeGenerated desc
