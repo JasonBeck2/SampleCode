@@ -1,0 +1,259 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "vWANname": {
+            "type": "string",
+            "defaultValue": "vwan-2",
+            "metadata": {
+                "description": "Azure Virtual WAN Name"
+            }
+        },
+        "hub1_location": {
+            "type": "string",
+            "defaultValue": "westus2",
+            "metadata": {
+                "description": "Azure Region for the first Hub"
+            }
+        },
+        "hub2_location": {
+            "type": "string",
+            "defaultValue": "westcentralus",
+            "metadata": {
+                "description": "Azure Region for the second Hub"
+            }
+        }
+    },
+    "variables": {
+        "vwan_cfg": {
+            "type": "Standard"
+        },
+        "virtual_hub1_cfg": {
+            "name": "vhub-wu2",
+            "addressSpacePrefix": "176.16.0.0/24"
+        },
+        "virtual_hub2_cfg": {
+            "name": "vhub-wc",
+            "addressSpacePrefix": "10.10.0.0/24"
+        },
+        "vnet1_cfg": {
+            "name": "spoke1-wu2",
+            "addressSpacePrefix": "172.18.0.0/16",
+            "subnetName": "subnet1",
+            "subnetPrefix": "172.18.0.0/24"
+        },
+        "vnet2_cfg": {
+            "name": "spoke2-wu2",
+            "addressSpacePrefix": "172.19.0.0/16",
+            "subnetName": "subnet1",
+            "subnetPrefix": "172.19.0.0/24"
+        },
+        "vnet3_cfg": {
+            "name": "spoke3-wc",
+            "addressSpacePrefix": "10.12.0.0/16",
+            "subnetName": "subnet1",
+            "subnetPrefix": "10.12.0.0/24"
+        },
+        "vnet4_cfg": {
+            "name": "spoke4-wc",
+            "addressSpacePrefix": "10.13.0.0/16",
+            "subnetName": "subnet1",
+            "subnetPrefix": "10.13.0.0/24"
+        },
+        "vnet5_cfg": {
+            "name": "shared-wu2",
+            "addressSpacePrefix": "172.17.0.0/16",
+            "subnetName": "subnet1",
+            "subnetPrefix": "172.17.1.0/24",
+            "fwSubnetPrefix": "172.17.0.0/24"
+        },
+        "vnet6_cfg": {
+            "name": "shared-wc",
+            "addressSpacePrefix": "10.11.0.0/16",
+            "subnetName": "subnet1",
+            "subnetPrefix": "10.11.1.0/24",
+            "fwSubnetPrefix": "10.11.0.0/24"
+        }
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Network/virtualWans",
+            "apiVersion": "2020-05-01",
+            "name": "[parameters('vWANname')]",
+            "location": "[parameters('hub1_location')]",
+            "properties": {
+                "allowVnetToVnetTraffic": true,
+                "allowBranchToBranchTraffic": true,
+                "type": "[variables('vwan_cfg').type]"
+            }
+        },
+        {
+            "type": "Microsoft.Network/virtualHubs",
+            "apiVersion": "2020-05-01",
+            "name": "[variables('virtual_hub1_cfg').name]",
+            "location": "[parameters('hub1_location')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/virtualWans', parameters('vWANname'))]"
+            ],
+            "properties": {
+                "addressPrefix": "[variables('virtual_hub1_cfg').addressSpacePrefix]",
+                "virtualWan": {
+                    "id": "[resourceId('Microsoft.Network/virtualWans', parameters('vWANname'))]"
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Network/virtualHubs",
+            "apiVersion": "2020-05-01",
+            "name": "[variables('virtual_hub2_cfg').name]",
+            "location": "[parameters('hub2_location')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/virtualWans', parameters('vWANname'))]"
+            ],
+            "properties": {
+                "addressPrefix": "[variables('virtual_hub2_cfg').addressSpacePrefix]",
+                "virtualWan": {
+                    "id": "[resourceId('Microsoft.Network/virtualWans', parameters('vWANname'))]"
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Network/virtualNetworks",
+            "apiVersion": "2020-05-01",
+            "name": "[variables('vnet1_cfg').name]",
+            "location": "[parameters('hub1_location')]",
+            "properties": {
+                "addressSpace": {
+                    "addressPrefixes": [
+                        "[variables('vnet1_cfg').addressSpacePrefix]"
+                    ]
+                },
+                "subnets": [
+                    {
+                        "name": "[variables('vnet1_cfg').subnetName]",
+                        "properties": {
+                            "addressPrefix": "[variables('vnet1_cfg').subnetPrefix]"
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "type": "Microsoft.Network/virtualNetworks",
+            "apiVersion": "2020-05-01",
+            "name": "[variables('vnet2_cfg').name]",
+            "location": "[parameters('hub1_location')]",
+            "properties": {
+                "addressSpace": {
+                    "addressPrefixes": [
+                        "[variables('vnet2_cfg').addressSpacePrefix]"
+                    ]
+                },
+                "subnets": [
+                    {
+                        "name": "[variables('vnet2_cfg').subnetName]",
+                        "properties": {
+                            "addressPrefix": "[variables('vnet2_cfg').subnetPrefix]"
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "type": "Microsoft.Network/virtualNetworks",
+            "apiVersion": "2020-05-01",
+            "name": "[variables('vnet3_cfg').name]",
+            "location": "[parameters('hub2_location')]",
+            "properties": {
+                "addressSpace": {
+                    "addressPrefixes": [
+                        "[variables('vnet3_cfg').addressSpacePrefix]"
+                    ]
+                },
+                "subnets": [
+                    {
+                        "name": "[variables('vnet3_cfg').subnetName]",
+                        "properties": {
+                            "addressPrefix": "[variables('vnet3_cfg').subnetPrefix]"
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "type": "Microsoft.Network/virtualNetworks",
+            "apiVersion": "2020-05-01",
+            "name": "[variables('vnet4_cfg').name]",
+            "location": "[parameters('hub2_location')]",
+            "properties": {
+                "addressSpace": {
+                    "addressPrefixes": [
+                        "[variables('vnet4_cfg').addressSpacePrefix]"
+                    ]
+                },
+                "subnets": [
+                    {
+                        "name": "[variables('vnet4_cfg').subnetName]",
+                        "properties": {
+                            "addressPrefix": "[variables('vnet4_cfg').subnetPrefix]"
+                        }
+                    }
+                ]
+            }
+        },
+                {
+            "type": "Microsoft.Network/virtualNetworks",
+            "apiVersion": "2020-05-01",
+            "name": "[variables('vnet5_cfg').name]",
+            "location": "[parameters('hub1_location')]",
+            "properties": {
+                "addressSpace": {
+                    "addressPrefixes": [
+                        "[variables('vnet5_cfg').addressSpacePrefix]"
+                    ]
+                },
+                "subnets": [
+                    {
+                        "name": "AzureFirewallSubnet",
+                        "properties": {
+                            "addressPrefix": "[variables('vnet5_cfg').fwSubnetPrefix]"
+                        }
+                    },
+                    {
+                        "name": "[variables('vnet5_cfg').subnetName]",
+                        "properties": {
+                            "addressPrefix": "[variables('vnet5_cfg').subnetPrefix]"
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "type": "Microsoft.Network/virtualNetworks",
+            "apiVersion": "2020-05-01",
+            "name": "[variables('vnet6_cfg').name]",
+            "location": "[parameters('hub2_location')]",
+            "properties": {
+                "addressSpace": {
+                    "addressPrefixes": [
+                        "[variables('vnet6_cfg').addressSpacePrefix]"
+                    ]
+                },
+                "subnets": [
+                    {
+                        "name": "AzureFirewallSubnet",
+                        "properties": {
+                            "addressPrefix": "[variables('vnet6_cfg').fwSubnetPrefix]"
+                        }
+                    },
+                    {
+                        "name": "[variables('vnet6_cfg').subnetName]",
+                        "properties": {
+                            "addressPrefix": "[variables('vnet6_cfg').subnetPrefix]"
+                        }
+                    }
+                ]
+            }
+        }
+    ]
+}

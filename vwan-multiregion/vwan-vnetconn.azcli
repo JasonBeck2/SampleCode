@@ -1,0 +1,39 @@
+# Create vhub
+az network vhub create -n hub-wu2 -g vwan --vwan vwan -l wu2 --address-prefix 176.16.0.0/24
+az network vhub create -n hub-wc  -g vwan --vwan vwan -l wc  --address-prefix 10.10.0.0/24
+
+# Create vnet peerings
+az network vnet peering create -n shared-to-spoke1 -g vwan --vnet-name shared-wu2 --remote-vnet (az network vnet show -n spoke1-wu2 -g vwan --query id -o tsv) --allow-forwarded-traffic --allow-vnet-access
+az network vnet peering create -n spoke1-to-shared -g vwan --vnet-name spoke1-wu2 --remote-vnet (az network vnet show -n shared-wu2 -g vwan --query id -o tsv) --allow-forwarded-traffic --allow-vnet-access
+az network vnet peering create -n shared-to-spoke2 -g vwan --vnet-name shared-wu2 --remote-vnet (az network vnet show -n spoke2-wu2 -g vwan --query id -o tsv) --allow-forwarded-traffic --allow-vnet-access
+az network vnet peering create -n spoke2-to-shared -g vwan --vnet-name spoke2-wu2 --remote-vnet (az network vnet show -n shared-wu2 -g vwan --query id -o tsv) --allow-forwarded-traffic --allow-vnet-access
+
+az network vnet peering create -n shared-to-spoke3 -g vwan --vnet-name shared-wc --remote-vnet (az network vnet show -n spoke3-wc -g vwan --query id -o tsv) --allow-forwarded-traffic --allow-vnet-access
+az network vnet peering create -n spoke3-to-shared -g vwan --vnet-name spoke3-wc --remote-vnet (az network vnet show -n shared-wc -g vwan --query id -o tsv) --allow-forwarded-traffic --allow-vnet-access
+az network vnet peering create -n shared-to-spoke4 -g vwan --vnet-name shared-wc --remote-vnet (az network vnet show -n spoke4-wc -g vwan --query id -o tsv) --allow-forwarded-traffic --allow-vnet-access
+az network vnet peering create -n spoke4-to-shared -g vwan --vnet-name spoke4-wc --remote-vnet (az network vnet show -n shared-wc -g vwan --query id -o tsv) --allow-forwarded-traffic --allow-vnet-access
+
+# Create vnet connections
+az network vhub connection create -n spoke1-wu2 -g vwan --remote-vnet (az network vnet show -n spoke1-wu2 -g vwan --query id -o tsv) --vhub-name hub-wu2
+az network vhub connection create -n spoke2-wu2 -g vwan --remote-vnet (az network vnet show -n spoke2-wu2 -g vwan --query id -o tsv) --vhub-name hub-wu2
+az network vhub connection create -n shared-wu2 -g vwan --remote-vnet (az network vnet show -n sharedservices-wu2 -g vwan --query id -o tsv) --vhub-name hub-wu2
+
+az network vhub connection create -n spoke1-wc -g vwan --remote-vnet (az network vnet show -n spoke1-wc -g vwan --query 'id' -o tsv) --vhub-name hub-wc
+az network vhub connection create -n spoke2-wc -g vwan --remote-vnet (az network vnet show -n spoke2-wc -g vwan --query 'id' -o tsv) --vhub-name hub-wc
+az network vhub connection create -n shared-wc -g vwan --remote-vnet (az network vnet show -n sharedservices-wc -g vwan --query 'id' -o tsv) --vhub-name hub-wc
+
+# List all connections
+az network vhub connection list --vhub-name hub-wu2 -g vwan -o table
+az network vhub connection list --vhub-name hub-wc  -g vwan -o table
+
+# Delete vnet connections
+az network vhub connection delete --vhub-name hub-wu2 -g vwan -n spoke1-wu2 --yes
+az network vhub connection delete --vhub-name hub-wu2 -g vwan -n spoke2-wu2 --yes
+az network vhub connection delete --vhub-name hub-wu2 -g vwan -n shared-wu2 --yes
+az network vhub connection delete --vhub-name hub-wc  -g vwan -n spoke3-wc --yes
+az network vhub connection delete --vhub-name hub-wc  -g vwan -n spoke4-wc --yes
+az network vhub connection delete --vhub-name hub-wc  -g vwan -n shared-wc --yes
+
+# Delete vhub
+az network vhub delete -n vhub-wu2 -g vwan
+az network vhub delete -n vhub-wc  -g vwan
