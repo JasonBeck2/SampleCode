@@ -1,6 +1,6 @@
 # Create vhub
-az network vhub create -n hub-wu2 -g vwan --vwan vwan -l wu2 --address-prefix 176.16.0.0/24
-az network vhub create -n hub-wc  -g vwan --vwan vwan -l wc  --address-prefix 10.10.0.0/24
+az network vhub create -n hub-wu2 -g vwan --vwan vwan -l westus2 --address-prefix 176.16.0.0/24
+az network vhub create -n hub-wc  -g vwan --vwan vwan -l westcentralus  --address-prefix 10.10.0.0/24
 
 # Create vnet peerings
 az network vnet peering create -n shared-to-spoke1 -g vwan --vnet-name shared-wu2 --remote-vnet (az network vnet show -n spoke1-wu2 -g vwan --query id -o tsv) --allow-forwarded-traffic --allow-vnet-access
@@ -18,13 +18,49 @@ az network vhub connection create -n spoke1-wu2 -g vwan --remote-vnet (az networ
 az network vhub connection create -n spoke2-wu2 -g vwan --remote-vnet (az network vnet show -n spoke2-wu2 -g vwan --query id -o tsv) --vhub-name hub-wu2
 az network vhub connection create -n shared-wu2 -g vwan --remote-vnet (az network vnet show -n sharedservices-wu2 -g vwan --query id -o tsv) --vhub-name hub-wu2
 
-az network vhub connection create -n spoke1-wc -g vwan --remote-vnet (az network vnet show -n spoke1-wc -g vwan --query 'id' -o tsv) --vhub-name hub-wc
-az network vhub connection create -n spoke2-wc -g vwan --remote-vnet (az network vnet show -n spoke2-wc -g vwan --query 'id' -o tsv) --vhub-name hub-wc
-az network vhub connection create -n shared-wc -g vwan --remote-vnet (az network vnet show -n sharedservices-wc -g vwan --query 'id' -o tsv) --vhub-name hub-wc
+az network vhub connection create -n spoke3-wc -g vwan --remote-vnet (az network vnet show -n spoke3-wc -g vwan --query id -o tsv) --vhub-name hub-wc
+az network vhub connection create -n spoke4-wc -g vwan --remote-vnet (az network vnet show -n spoke4-wc -g vwan --query id -o tsv) --vhub-name hub-wc
+az network vhub connection create -n shared-wc -g vwan --remote-vnet (az network vnet show -n sharedservices-wc -g vwan --query id -o tsv) --vhub-name hub-wc
 
 # List all connections
 az network vhub connection list --vhub-name hub-wu2 -g vwan -o table
 az network vhub connection list --vhub-name hub-wc  -g vwan -o table
+
+# Create route tables
+az network vhub route-table create -n vnet -g vwan --vhub-name hub-wu2
+az network vhub route-table create -n shared -g vwan --vhub-name hub-wu2
+
+az network vhub route-table create -n vnet -g vwan --vhub-name hub-wc
+az network vhub route-table create -n shared -g vwan --vhub-name hub-wc
+
+# Update connections
+
+az network vhub connection update -n spoke1-wu2 -g vwan --vhub-name hub-wu2 --associated (az network vhub route-table show -n vnet -g vwan --vhub-name hub-wu2 --query id -o tsv) --propagated (az network vhub route-table show -n shared -g vwan --vhub-name hub-wu2 --query id -o tsv), (az network vhub route-table show -n vnet -g vwan --vhub-name hub-wu2 --query id -o tsv) #--labels vnet
+az network vhub connection update -n spoke2-wu2 -g vwan --vhub-name hub-wu2 --associated (az network vhub route-table show -n vnet -g vwan --vhub-name hub-wu2 --query id -o tsv) --propagated (az network vhub route-table show -n shared -g vwan --vhub-name hub-wu2 --query id -o tsv), (az network vhub route-table show -n vnet -g vwan --vhub-name hub-wu2 --query id -o tsv) #--labels vnet
+az network vhub connection update -n shared-wu2 -g vwan --vhub-name hub-wu2 --associated (az network vhub route-table show -n shared -g vwan --vhub-name hub-wu2 --query id -o tsv) --propagated (az network vhub route-table show -n shared -g vwan --vhub-name hub-wu2 --query id -o tsv) --labels shared
+
+az network vhub connection update -n spoke1-wc -g vwan --vhub-name hub-wc --associated (az network vhub route-table show -n vnet -g vwan --vhub-name hub-wc --query id -o tsv) --propagated (az network vhub route-table show -n shared -g vwan --vhub-name hub-wc --query id -o tsv), (az network vhub route-table show -n vnet -g vwan --vhub-name hub-wc --query id -o tsv) #--labels vnet
+az network vhub connection update -n spoke2-wc -g vwan --vhub-name hub-wc --associated (az network vhub route-table show -n vnet -g vwan --vhub-name hub-wc --query id -o tsv) --propagated (az network vhub route-table show -n shared -g vwan --vhub-name hub-wc --query id -o tsv), (az network vhub route-table show -n vnet -g vwan --vhub-name hub-wc --query id -o tsv) #--labels vnet
+az network vhub connection update -n shared-wc -g vwan --vhub-name hub-wc --associated (az network vhub route-table show -n shared -g vwan --vhub-name hub-wc --query id -o tsv) --propagated (az network vhub route-table show -n shared -g vwan --vhub-name hub-wc --query id -o tsv) --labels shared
+
+# az network vhub route-table show -n shared -g vwan --vhub-name hub-wu2 --query id -o tsv
+# az network vhub route-table show -n vnet -g vwan --vhub-name hub-wu2 --query id -o tsv
+
+# Add static routes. Don't work
+# az network vhub route-table route add -n vnet -g vwan --vhub-name hub-wu2 --destination-type CIDR --destinations "10.0.0.0/8" --next-hop-type ResourceId --next-hop (az network firewall show -n fw -g vwan --query id -o tsv)
+# az network vhub route-table route add --route-name interregion-fw -n vnet -g vwan --vhub-name hub-wc --destination-type CIDR --destinations "172.16.0.0/12" --next-hop-type ResourceId --next-hop (az network firewall show -n fw -g vwan --query id -o tsv)
+
+# Get route tables
+az network route-table show -g vwan -n spoke1-rt 
+az network route-table show -g vwan -n spoke3-rt
+
+# Remove UDRs
+az network vnet subnet update -g vwan -n app --vnet-name spoke1-wu2 --remove routeTable
+az network vnet subnet update -g vwan -n app --vnet-name spoke3-wc --remove routeTable
+
+# Add UDRs
+az network vnet subnet update -g vwan -n app --vnet-name spoke1-wu2 --route-table spoke1-rt
+az network vnet subnet update -g vwan -n app --vnet-name spoke3-wc --route-table spoke3-rt
 
 # Delete vnet connections
 az network vhub connection delete --vhub-name hub-wu2 -g vwan -n spoke1-wu2 --yes
@@ -37,3 +73,6 @@ az network vhub connection delete --vhub-name hub-wc  -g vwan -n shared-wc --yes
 # Delete vhub
 az network vhub delete -n vhub-wu2 -g vwan
 az network vhub delete -n vhub-wc  -g vwan
+
+# Delete firewall
+az network firewall delete -g vwan -n fw
