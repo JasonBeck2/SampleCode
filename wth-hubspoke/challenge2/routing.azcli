@@ -1,0 +1,46 @@
+$rg='wth-hubspoke'
+$location='westcentralus'
+$subnet='vms'
+
+# hub
+$vnet='hub'
+az network route-table create -n ${vnet}-rt -g $rg -l $location
+az network vnet subnet update -g $rg -n $subnet --vnet-name $vnet --route-table ${vnet}-rt
+az network route-table route create -g $rg --route-table-name ${vnet}-rt -n Internet --next-hop-type VirtualAppliance --address-prefix 0.0.0.0/0 --next-hop-ip-address 10.0.1.4
+az network route-table route create -g $rg --route-table-name ${vnet}-rt -n Onprem --next-hop-type VirtualAppliance --address-prefix 172.16.0.0/16 --next-hop-ip-address 10.0.1.4
+az network route-table route create -g $rg --route-table-name ${vnet}-rt -n Spoke1 --next-hop-type VirtualAppliance --address-prefix 10.1.0.0/16 --next-hop-ip-address 10.0.1.4
+az network route-table route create -g $rg --route-table-name ${vnet}-rt -n Spoke2 --next-hop-type VirtualAppliance --address-prefix 10.2.0.0/16 --next-hop-ip-address 10.0.1.4
+# Disable BGP route prop
+az network route-table update -g $rg -n ${vnet}-rt --set disableBgpRoutePropagation=true
+
+az network route-table create -n gw-rt -g $rg -l $location
+az network vnet subnet update -g $rg -n GatewaySubnet --vnet-name $vnet --route-table gw-rt
+az network route-table route create -g $rg --route-table-name gw-rt -n Hub --next-hop-type VirtualAppliance --address-prefix 10.0.0.0/16 --next-hop-ip-address 10.0.1.4
+az network route-table route create -g $rg --route-table-name gw-rt -n Spoke1 --next-hop-type VirtualAppliance --address-prefix 10.1.0.0/16 --next-hop-ip-address 10.0.1.4
+az network route-table route create -g $rg --route-table-name gw-rt -n Spoke2 --next-hop-type VirtualAppliance --address-prefix 10.2.0.0/16 --next-hop-ip-address 10.0.1.4
+
+# spoke1
+$vnet='spoke1'
+az network route-table create -n ${vnet}-rt -g $rg -l $location
+az network vnet subnet update -g $rg -n $subnet --vnet-name $vnet --route-table ${vnet}-rt
+az network route-table route create -g $rg --route-table-name ${vnet}-rt -n Internet --next-hop-type VirtualAppliance --address-prefix 0.0.0.0/0 --next-hop-ip-address 10.0.1.4
+az network route-table route create -g $rg --route-table-name ${vnet}-rt -n Hub --next-hop-type VirtualAppliance --address-prefix 10.0.0.0/16 --next-hop-ip-address 10.0.1.4
+# Specific to bastion
+az network route-table route create -g $rg --route-table-name ${vnet}-rt -n Bastion --next-hop-type VnetLocal --address-prefix 10.0.4.0/24
+# Disable BGP route prop
+az network route-table update -g $rg -n ${vnet}-rt --set disableBgpRoutePropagation=true
+
+
+# spoke2
+$vnet='spoke2'
+az network route-table create -n ${vnet}-rt -g $rg -l $location
+az network vnet subnet update -g $rg -n $subnet --vnet-name $vnet --route-table ${vnet}-rt
+az network route-table route create -g $rg --route-table-name ${vnet}-rt -n Internet --next-hop-type VirtualAppliance --address-prefix 0.0.0.0/0 --next-hop-ip-address 10.0.1.4
+az network route-table route create -g $rg --route-table-name ${vnet}-rt -n Hub --next-hop-type VirtualAppliance --address-prefix 10.0.0.0/16 --next-hop-ip-address 10.0.1.4
+# Specific to bastion
+az network route-table route create -g $rg --route-table-name ${vnet}-rt -n Bastion --next-hop-type VnetLocal --address-prefix 10.0.4.0/24
+# Disable BGP route prop
+az network route-table update -g $rg -n ${vnet}-rt --set disableBgpRoutePropagation=true
+
+# Remove UDR from subnet example
+az network vnet subnet update -n ${vnet}-rt -g $rg --vnet-name $vnet --remove routeTable

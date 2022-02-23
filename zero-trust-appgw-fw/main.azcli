@@ -1,0 +1,33 @@
+rg=zero-trust
+location=westus2
+vnet_name=zt-vnet
+vm_name=web1
+subnet=web
+size=Standard_B2s
+username=labuser
+password=P@ssw0rd12345
+publisher=MicrosoftWindowsServer
+offer=WindowsServer
+sku=2019-Datacenter
+version=$(az vm image list -p $publisher -f $offer -s $sku --all --query '[0].version' -o tsv)
+
+# create rg
+az group create -l $location -n $rg
+
+# create vnet
+az network vnet create -n $vnet_name -g $rg --subnet-name web --address-prefixes 10.200.0.0/16
+az network vnet subnet create --vnet-name $vnet_name -g $rg --name applicationgateway --address-prefixes 10.200.1.0/24
+az network vnet subnet create --vnet-name $vnet_name -g $rg --name AzureFirewallSubnet --address-prefixes 10.200.2.0/24
+
+# create VM
+az vm create -n $vm_name -g $rg -l $location --image ${publisher}:${offer}:${sku}:${version} --admin-username $username --admin-password $password --authentication-type password --size Standard_B2s --vnet-name $vnet_name --subnet $subnet --public-ip-address ${vm_name}-pip --public-ip-address-allocation dynamic
+az vm run-command create -g $rg -l $location --async-execution false --script "Install-WindowsFeature Web-Server -IncludeManagementTools; Install-WindowsFeature Web-Asp-Net45; Add-Content -Path \"C:\inetpub\wwwroot\Default.htm\" -Value $vm_name;" --timeout-in-seconds 3600 --run-command-name "InstallWebServer" --vm-name $vm_name
+
+# route table
+az network route-table create -n ${vnet_name}-rt -g $rg -l $location
+az network route-table route create -g $rg --route-table-name ${vnet_name}-rt -n Web --next-hop-type VirtualAppliance --address-prefix 10.200.0.0/24 --next-hop-ip-address 10.200.2.4
+az network vnet subnet update -g $rg -n applicationgateway --vnet-name $vnet_name --route-table ${vnet_name}-rt
+
+az network route-table create -n web-rt -g $rg -l $location
+az network route-table route create -g $rg --route-table-name web-rt -n Web --next-hop-type VirtualAppliance --address-prefix 10.200.1.0/24 --next-hop-ip-address 10.200.2.4
+az network vnet subnet update -g $rg -n web --vnet-name $vnet_name --route-table web-rt

@@ -1,0 +1,112 @@
+# PS Variables
+$rg='wth-hubspoke'
+$location='westcentralus'
+$publisher='cisco'
+$offer='cisco-csr-1000v'
+$sku='16_12-byol'
+$branch_name='onprem'
+$branch_prefix='172.16.0.0/16'
+$branch_subnet='172.16.1.0/24'
+$branch_gateway='172.16.1.1'
+$branch_bgp_ip='172.16.1.10'
+$branch_asn='65502'
+$branch_username='labuser'
+$branch_password='P@ssw0rd12345'
+
+# Create CSR
+az group create -n $rg -l $location
+version=$(az vm image list -p $publisher -f $offer -s $sku --all --query '[0].version' -o tsv)
+# You only need to accept the image terms once per subscription
+az vm image terms accept --urn ${publisher}:${offer}:${sku}:${version}
+az vm create -n ${branch_name}-nva -g $rg -l $location \
+    --image ${publisher}:${offer}:${sku}:${version} \
+    --admin-username "$branch_username" --admin-password $branch_password --authentication-type password \
+    --public-ip-address ${branch_name}-pip --public-ip-address-allocation standard \
+    --vnet-name ${branch_name} --vnet-address-prefix $branch_prefix \
+    --subnet nva --subnet-address-prefix $branch_subnet \
+    --private-ip-address $branch_bgp_ip
+
+az vm create -n ${branch_name}-nva -g $rg -l $location --image ${publisher}:${offer}:${sku}:${version} --admin-username "$branch_username" --admin-password $branch_password --authentication-type password --public-ip-address ${branch_name}-pip --public-ip-address-allocation static --vnet-name ${branch_name} --vnet-address-prefix $branch_prefix --subnet nva --subnet-address-prefix $branch_subnet --private-ip-address $branch_bgp_ip
+
+# Connect to the CSR and run commands (ideally using SSH key authentication)
+branch_ip=$(az network public-ip show -n ${branch_name}-pip -g $rg --query ipAddress -o tsv)
+# Example 1-line command (the -n flag disables reading from stdin, the StrickHostKeyChecking=no flag automatically accepts the public key)
+ssh -n -o BatchMode=yes -o StrictHostKeyChecking=no ${branch_username}@${branch_ip} "show ip interface brief"
+# Example multi-line command
+ssh -o BatchMode=yes -o StrictHostKeyChecking=no ${branch_username}@${branch_ip} <<EOF
+  config t
+    username ${branch_username} password 0 ${branch_password}
+  end
+  wr mem
+EOF
+
+
+crypto ikev2 proposal azure-proposal
+  encryption aes-cbc-256 aes-cbc-128 3des
+  integrity sha1
+  group 2
+  exit
+!
+crypto ikev2 policy azure-policy
+  proposal azure-proposal
+  exit
+!
+crypto ikev2 keyring azure-keyring
+  peer 52.161.73.73
+    address 52.161.73.73
+    pre-shared-key 1234567890
+    exit
+  exit
+!
+crypto ikev2 profile azure-profile
+  match address local interface GigabitEthernet1
+  match identity remote address 52.161.73.73 255.255.255.255
+  authentication remote pre-share
+  authentication local pre-share
+  keyring local azure-keyring
+  exit
+!
+crypto ipsec transform-set azure-ipsec-proposal-set esp-aes 256 esp-sha-hmac
+ mode tunnel
+ exit
+
+crypto ipsec profile azure-vti
+  set transform-set azure-ipsec-proposal-set
+  set ikev2-profile azure-profile
+  set security-association lifetime kilobytes 102400000
+  set security-association lifetime seconds 3600 
+ exit
+!
+interface Tunnel0
+ ip unnumbered GigabitEthernet1 
+ ip tcp adjust-mss 1350
+ tunnel source GigabitEthernet1
+ tunnel mode ipsec ipv4
+ tunnel destination 52.161.73.73
+ tunnel protection ipsec profile azure-vti
+exit
+!
+router bgp 65502
+ bgp router-id interface GigabitEthernet1
+ bgp log-neighbor-changes
+ redistribute connected
+ neighbor 10.0.0.254 remote-as 65503
+ neighbor 10.0.0.254 ebgp-multihop 5
+ neighbor 10.0.0.254 update-source GigabitEthernet1
+ maximum-paths eibgp 4
+!
+ip route 10.0.0.254 255.255.255.255 Tunnel0
+!
+end
+!
+wr mem
+
+
+# Extra commands
+show crypto ipsec sa detail
+show crypto ipsec sa
+session current status
+show run brief
+
+ip route 172.16.0.0 255.255.0.0 172.16.1.1
+network 172.16.0.0 mask 255.255.0.0 # add under 'router bgp 65502'

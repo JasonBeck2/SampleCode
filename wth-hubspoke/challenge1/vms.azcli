@@ -1,0 +1,78 @@
+# PS Variables
+$rg='wth-hubspoke'
+$location='westcentralus'
+$publisher='MicrosoftWindowsServer'
+$offer='WindowsServer'
+$sku='2019-Datacenter'
+$vm_name='hub-vm'
+$vnet='hub'
+$subnet='vms'
+$username='labuser'
+$password='P@ssw0rd12345'
+$version=$(az vm image list -p $publisher -f $offer -s $sku --all --query '[0].version' -o tsv)
+
+# hub vm
+az vm create -n $vm_name -g $rg -l $location --image ${publisher}:${offer}:${sku}:${version} --admin-username "$username" --admin-password $password --authentication-type password --size Standard_B2s --vnet-name $vnet --subnet $subnet # --public-ip-address ${vm_name}-pip --public-ip-address-allocation dynamic
+az vm run-command create -g $rg -l $location --async-execution false --script "Install-WindowsFeature Web-Server -IncludeManagementTools; Add-Content -Path `"C:\inetpub\wwwroot\Default.htm`" -Value $vm_name;" --timeout-in-seconds 3600 --run-command-name "InstallWebServer" --vm-name $vm_name
+
+# spoke 1 vm (windows)
+$vm_name='spoke1-vm'
+$vnet='spoke1'
+$subnet='vms'
+
+az vm create -n $vm_name -g $rg -l $location --image ${publisher}:${offer}:${sku}:${version} --admin-username "$username" --admin-password $password --authentication-type password --size Standard_B2s --vnet-name $vnet --subnet $subnet # --public-ip-address ${vm_name}-pip --public-ip-address-allocation dynamic
+az vm run-command create -g $rg -l $location --async-execution false --script "Install-WindowsFeature Web-Server -IncludeManagementTools; Install-WindowsFeature Web-Asp-Net45;" --timeout-in-seconds 3600 --run-command-name "InstallWebServer" --vm-name $vm_name
+
+# spoke 2 vm (windows)
+$vm_name='spoke2-vm'
+$vnet='spoke2'
+$subnet='vms'
+
+az vm create -n $vm_name -g $rg -l $location --image ${publisher}:${offer}:${sku}:${version} --admin-username "$username" --admin-password $password --authentication-type password --size Standard_B2s --vnet-name $vnet --subnet $subnet # --public-ip-address ${vm_name}-pip --public-ip-address-allocation dynamic
+az vm run-command create -g $rg -l $location --async-execution false --script "Install-WindowsFeature Web-Server -IncludeManagementTools; Install-WindowsFeature Web-Asp-Net45; Add-Content -Path `"C:\inetpub\wwwroot\Default.htm`" -Value $vm_name;" --timeout-in-seconds 3600 --run-command-name "InstallWebServer" --vm-name $vm_name
+
+# spoke 2 vm (linux)
+$vm_name='spoke2-vm'
+$vnet='spoke2'
+$subnet='vms'
+$publisher='Canonical'
+$offer='UbuntuServer'
+$sku='18.04-LTS'
+$version=$(az vm image list -p $publisher -f $offer -s $sku --all --query '[0].version' -o tsv)
+
+az vm create -n $vm_name -g $rg -l $location --image ${publisher}:${offer}:${sku}:${version} --admin-username "$username" --admin-password $password --authentication-type password --size Standard_B2s --vnet-name $vnet --subnet $subnet # --public-ip-address ${vm_name}-pip --public-ip-address-allocation dynamic
+az vm run-command create -g $rg -l $location --async-execution false --script "sudo apt-get update && sudo apt-get install -y nginx" --timeout-in-seconds 3600 --run-command-name "InstallNginx" --vm-name $vm_name
+
+
+# install-module sqlserver
+invoke-sqlcmd -ServerInstance spoke1-sql-wth.database.windows.net -Username labuser -Password P@ssw0rd12345 -Query "select @@version" | select -expandproperty Column1
+
+# inspect gadget
+Install-Module -Name DockerMsftProvider -Force
+Install-Package -Name docker -ProviderName DockerMsftProvider -Force
+# restart
+# Check Get-Package -Name Docker -ProviderName DockerMsftProvider
+Start-Service Docker
+docker pull jelledruyts/inspectorgadget:latest-windows
+docker run -d  jelledruyts/inspectorgadget:latest-windows -p 8080
+
+# ubuntu
+$publisher='Canonical'
+$offer='UbuntuServer'
+$sku='18.04-LTS'
+$version=$(az vm image list -p $publisher -f $offer -s $sku --all --query '[0].version' -o tsv)
+$vm_name='spoke1-vm2'
+$vnet='spoke1'
+$subnet='vms'
+
+# ubuntu vm
+az vm create -n $vm_name -g $rg -l $location --image ${publisher}:${offer}:${sku}:${version} --admin-username "$username" --admin-password $password --authentication-type password --size Standard_B2s --vnet-name $vnet --subnet $subnet # --public-ip-address ${vm_name}-pip --public-ip-address-allocation dynamic
+# apt install python3-dev libpq-dev
+
+
+sudo apt-get install -y docker.io
+# host on external port 8081
+sudo docker run -d -p 8081:80 -e "API_URL=http://localhost:8080" --name web fasthacks/sqlweb:1.0
+
+# host on external port 80
+docker run -d -p 80:80 -e "API_URL=http://localhost" --name web fasthacks/sqlweb:1.0

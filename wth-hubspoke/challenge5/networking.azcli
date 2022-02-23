@@ -1,0 +1,25 @@
+$rg='wth-hubspoke'
+$location='westcentralus'
+$subnet='appservice'
+$vnet='spoke2'
+$appserviceplan='appsvcplan'
+$webapp='webapp-wth'
+$username='labuser'
+$password='P@ssw0rd12345'
+$sql1='sql-spoke1-wth'
+$sql2='sql-spoke2-wth'
+$dbname='proddb'
+
+# service endpoint
+az network vnet subnet update -g $rg -n $subnet --vnet-name $vnet --service-endpoints Microsoft.Sql
+
+# app service
+az appservice plan create -g $rg -n $appserviceplan --sku P1V2
+az webapp create -g $rg -p $appserviceplan -n $webapp
+az webapp vnet-integration add -g $rg -n $webapp --vnet $vnet --subnet $subnet 
+
+# sql
+az sql server create -n $sql1 -l $location -g $rg --admin-user $username --admin-password $password
+az sql server create -n $sql2 -l $location -g $rg --admin-user $username --admin-password $password
+
+az sql db create -g $rg -s $sql1 -n $dbname -e GeneralPurpose -f Gen5 -c 2

@@ -1,0 +1,59 @@
+az group create -l westcentralus -n vmss-testing
+
+name=vmss2
+rg=vmss-testing
+location=westus2
+image=UbuntuLTS
+size=Standard_B2s
+username=labuser
+password=P@ssw0rd12345
+
+# Region:no zones. Select fault domain count
+name=vmss10
+location=westcentralus
+az vmss create -n $name -g $rg --image $image --instance-count 2 --orchestration-mode flexible \
+                --admin-username "$username" --admin-password $password --authentication-type password \
+                --vm-sku $size --vnet-name vmss1VNET --subnet vmss1Subnet --platform-fault-domain-count 2
+az vmss show -n $name -g $rg
+#   "zoneBalance": null,
+#   "zones": null
+
+# Region:no zones. Do not specify fault domain count.
+# Portal experience. Set 'Max Spreading', fault domain count is still 1
+name=vmss11
+location=westcentralus
+az vmss create -n $name -g $rg --image $image --instance-count 2 --orchestration-mode flexible \
+                --admin-username "$username" --admin-password $password --authentication-type password \
+                --vm-sku $size --vnet-name vmss1VNET --subnet vmss1Subnet
+az vmss show -n $name -g $rg
+# Defaults to a single fault domain count
+
+name=vmss2
+# vmss with zones
+az vmss create -n $name -g $rg --image $image --instance-count 2 --orchestration-mode flexible \
+                --admin-username "$username" --admin-password $password --authentication-type password \
+                --vm-sku $size --zones 1 2 -l $location
+az vmss show -n $name -g $rg
+#   "zoneBalance": false,
+#   "zones": [
+#     "1",
+#     "2"
+#   ]         
+# add single VM to VMSS
+az vm create -n single-vm -g $rg -l $location --vmss $name --image $image --admin-username "$username" --admin-password $password --authentication-type password --public-ip-address ""
+
+# vmss with fault domains. PIP is regional.
+name=vmss4
+az vmss create -n $name -g $rg --image $image --instance-count 2 --orchestration-mode flexible \
+                --admin-username "$username" --admin-password $password --authentication-type password \
+                --vm-sku $size -l $location --vnet-name vmss2VNET --subnet vmss2Subnet --platform-fault-domain-count 3
+az vmss show -n $name -g $rg
+
+# platform-fault-domain-count cannot be used with zones
+name=vmss5
+az vmss create -n $name -g $rg --image $image --instance-count 2 --orchestration-mode flexible \
+                --admin-username "$username" --admin-password $password --authentication-type password \
+                --vm-sku $size -l $location --vnet-name vmss2VNET --subnet vmss2Subnet --platform-fault-domain-count 3 --zones 2 3
+az vmss show -n $name -g $rg
+# Error message
+# Specifying Availability Zones is not allowed when Virtual Machine Scale Set has platformFaultDomainCount higher than 1 with OrchestrationMode: 'Flexible'
